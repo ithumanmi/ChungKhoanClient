@@ -1,29 +1,25 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, TrendingUp } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useLogin } from '../hooks/useApi';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const loginMutation = useLogin();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setIsLoading(true);
 
     try {
-      await login(email, password);
+      await loginMutation.mutateAsync({ email, password });
       navigate('/');
     } catch (err: any) {
       setError(err.message || 'Đăng nhập thất bại');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -145,13 +141,13 @@ const Login: React.FC = () => {
             <div>
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={loginMutation.isLoading}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg 
                          shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 
                          focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 
                          disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                {loginMutation.isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
               </button>
             </div>
           </form>

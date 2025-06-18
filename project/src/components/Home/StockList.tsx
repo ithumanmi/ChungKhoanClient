@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown, Eye, Star } from 'lucide-react';
 import { Stock } from '../../types/stock';
 import { formatNumber, formatCompactNumber, formatPercent, getChangeColor, getChangeBgColor } from '../../utils/format';
+import { useAddToWatchlist, useRemoveFromWatchlist, useWatchlist } from '../../hooks/useApi';
 
 interface StockListProps {
   stocks: Stock[];
@@ -11,6 +12,24 @@ interface StockListProps {
 }
 
 const StockList: React.FC<StockListProps> = ({ stocks, title, showWatchlistButton = true }) => {
+  const { data: watchlist } = useWatchlist();
+  const addToWatchlistMutation = useAddToWatchlist();
+  const removeFromWatchlistMutation = useRemoveFromWatchlist();
+
+  const watchlistSymbols = watchlist?.data?.map((item: any) => item.symbol) || [];
+
+  const handleWatchlistToggle = async (symbol: string) => {
+    try {
+      if (watchlistSymbols.includes(symbol)) {
+        await removeFromWatchlistMutation.mutateAsync(symbol);
+      } else {
+        await addToWatchlistMutation.mutateAsync(symbol);
+      }
+    } catch (error: any) {
+      console.error('Watchlist error:', error);
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
       <div className="p-6 border-b border-gray-200 dark:border-gray-700">
@@ -46,69 +65,80 @@ const StockList: React.FC<StockListProps> = ({ stocks, title, showWatchlistButto
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            {stocks.map((stock) => (
-              <tr key={stock.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <Link
-                      to={`/stock/${stock.symbol}`}
-                      className="text-primary-600 dark:text-primary-400 font-bold hover:text-primary-800 
-                               dark:hover:text-primary-300 transition-colors"
-                    >
-                      {stock.symbol}
-                    </Link>
-                    <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
-                      {stock.name}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
-                    {formatNumber(stock.price)}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <div className={`inline-flex flex-col items-end space-y-1`}>
-                    <span className={`text-sm font-medium ${getChangeColor(stock.change)}`}>
-                      {stock.change >= 0 ? '+' : ''}{formatNumber(stock.change)}
-                    </span>
-                    <span className={`text-xs px-2 py-1 rounded-full border ${getChangeBgColor(stock.changePercent)}`}>
-                      {formatPercent(stock.changePercent)}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <div className="text-sm text-gray-900 dark:text-white">
-                    {formatCompactNumber(stock.volume)}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <div className="text-sm text-gray-900 dark:text-white">
-                    {formatCompactNumber(stock.value)}
-                  </div>
-                </td>
-                {showWatchlistButton && (
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <div className="flex items-center justify-center space-x-2">
+            {stocks.map((stock) => {
+              const isInWatchlist = watchlistSymbols.includes(stock.symbol);
+              const isWatchlistLoading = addToWatchlistMutation.isLoading || removeFromWatchlistMutation.isLoading;
+              
+              return (
+                <tr key={stock.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
                       <Link
                         to={`/stock/${stock.symbol}`}
-                        className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 
-                                 transition-colors"
-                        title="Xem chi tiết"
+                        className="text-primary-600 dark:text-primary-400 font-bold hover:text-primary-800 
+                                 dark:hover:text-primary-300 transition-colors"
                       >
-                        <Eye className="h-4 w-4" />
+                        {stock.symbol}
                       </Link>
-                      <button
-                        className="p-1 text-gray-400 hover:text-warning-600 transition-colors"
-                        title="Thêm vào danh sách theo dõi"
-                      >
-                        <Star className="h-4 w-4" />
-                      </button>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
+                        {stock.name}
+                      </div>
                     </div>
                   </td>
-                )}
-              </tr>
-            ))}
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                      {formatNumber(stock.price)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <div className={`inline-flex flex-col items-end space-y-1`}>
+                      <span className={`text-sm font-medium ${getChangeColor(stock.change)}`}>
+                        {stock.change >= 0 ? '+' : ''}{formatNumber(stock.change)}
+                      </span>
+                      <span className={`text-xs px-2 py-1 rounded-full border ${getChangeBgColor(stock.changePercent)}`}>
+                        {formatPercent(stock.changePercent)}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <div className="text-sm text-gray-900 dark:text-white">
+                      {formatCompactNumber(stock.volume)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <div className="text-sm text-gray-900 dark:text-white">
+                      {formatCompactNumber(stock.value)}
+                    </div>
+                  </td>
+                  {showWatchlistButton && (
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center space-x-2">
+                        <Link
+                          to={`/stock/${stock.symbol}`}
+                          className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 
+                                   transition-colors"
+                          title="Xem chi tiết"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                        <button
+                          onClick={() => handleWatchlistToggle(stock.symbol)}
+                          disabled={isWatchlistLoading}
+                          className={`p-1 transition-colors ${
+                            isInWatchlist 
+                              ? 'text-warning-600 hover:text-warning-700' 
+                              : 'text-gray-400 hover:text-warning-600'
+                          } ${isWatchlistLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          title={isInWatchlist ? 'Xóa khỏi danh sách theo dõi' : 'Thêm vào danh sách theo dõi'}
+                        >
+                          <Star className={`h-4 w-4 ${isInWatchlist ? 'fill-current' : ''}`} />
+                        </button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

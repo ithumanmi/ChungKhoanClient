@@ -3,9 +3,17 @@ import { Link } from 'react-router-dom';
 import { TrendingUp, BarChart3, Users, Bell } from 'lucide-react';
 import MarketIndices from '../components/Home/MarketIndices';
 import StockList from '../components/Home/StockList';
-import { mockMarketIndices, mockTopStocks, mockHotStocks } from '../data/mockData';
+import { useStocks } from '../hooks/useApi';
+import { mockMarketIndices } from '../data/mockData';
 
 const Home: React.FC = () => {
+  // Sử dụng API để lấy danh sách cổ phiếu
+  const { data: stocksData, isLoading: stocksLoading, error: stocksError } = useStocks(1, 10);
+
+  // Tách dữ liệu thành 2 nhóm: top stocks và hot stocks
+  const topStocks = stocksData?.data?.slice(0, 5) || [];
+  const hotStocks = stocksData?.data?.slice(5, 10) || [];
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Hero Section */}
@@ -46,14 +54,39 @@ const Home: React.FC = () => {
       {/* Stock Lists */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <StockList 
-            stocks={mockTopStocks} 
-            title="Cổ phiếu vốn hóa lớn" 
-          />
-          <StockList 
-            stocks={mockHotStocks} 
-            title="Cổ phiếu được quan tâm" 
-          />
+          {stocksLoading ? (
+            <div className="lg:col-span-2">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+                <div className="animate-pulse">
+                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
+                  <div className="space-y-3">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : stocksError ? (
+            <div className="lg:col-span-2">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+                <p className="text-red-500 text-center">
+                  Không thể tải dữ liệu cổ phiếu: {(stocksError as Error).message}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <StockList 
+                stocks={topStocks} 
+                title="Cổ phiếu vốn hóa lớn" 
+              />
+              <StockList 
+                stocks={hotStocks} 
+                title="Cổ phiếu được quan tâm" 
+              />
+            </>
+          )}
         </div>
       </section>
 
